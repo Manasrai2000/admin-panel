@@ -15,27 +15,63 @@ export default function LoginPage() {
   // Handle the transition effect and redirection
   useEffect(() => {
     if (success) {
-      // First fade out
-      setTransition(true);
-      
-      // Then redirect after animation completes
-      const redirectTimer = setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 800);
-      
-      return () => clearTimeout(redirectTimer);
+      const userDesignationId = parseInt(localStorage.getItem("userDesignationId"));
+
+      if (userDesignationId === 2) {
+        setTransition(true);
+
+        const redirectTimer = setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 800);
+
+        return () => clearTimeout(redirectTimer);
+      }
     }
   }, [success]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
-    // Simulate login logic
-    setTimeout(() => {
+
+    try {
+      const response = await fetch("https://test-apis.codebright.in/auth-api/user-login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          PR_USERNAME: email,
+          PR_PASSWORD: password
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Login successful:", data);
+
+        // Optionally store token if available
+        if (rememberMe && data.DATA.PR_TOKEN) {
+          console.log(data.DATA.PR_TOKEN);
+          var userData = data.DATA;
+          localStorage.clear();
+          localStorage.setItem("authToken", userData.PR_TOKEN);
+          localStorage.setItem("userName", userData.PR_NAME);
+          localStorage.setItem("userPhoneNumber", userData.PR_PHONE);
+          localStorage.setItem("userEmail", userData.PR_EMAIL);
+          localStorage.setItem("userDesignationId", userData.PR_DESIGNATION.PR_DESIGNATION_ID);
+        }
+
+        setSuccess(true); // triggers transition + redirect
+      } else {
+        alert(data.message || "Login failed");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Something went wrong. Please try again.");
+    } finally {
       setLoading(false);
-      setSuccess(true);
-    }, 1500);
+    }
   };
 
   return (
@@ -43,21 +79,21 @@ export default function LoginPage() {
       {/* Left section - Brand/Welcome Panel */}
       <div className="hidden md:flex md:w-1/2 p-8 items-center justify-center bg-gradient-to-br from-indigo-800 via-indigo-700 to-indigo-800 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-20"></div>
-        
+
         {/* Decorative elements */}
         <div className="absolute w-full h-full">
           <div className="absolute top-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full -ml-12 -mt-12"></div>
           <div className="absolute bottom-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-16 -mb-16"></div>
           <div className="absolute top-1/4 right-1/4 w-16 h-16 bg-white opacity-10 rounded-full"></div>
         </div>
-        
+
         {/* Welcome content */}
         <div className="relative z-10 max-w-md text-center">
           <h1 className="text-4xl font-extrabold mb-6">Welcome Back!</h1>
           <p className="text-lg mb-10 text-indigo-100">
             Access your dashboard, track your projects, and connect with your team.
           </p>
-          
+
           {/* Stats section */}
           <div className="grid grid-cols-3 gap-4 mb-10">
             <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-filter backdrop-blur-sm">
@@ -73,7 +109,7 @@ export default function LoginPage() {
               <p className="text-sm text-indigo-100">Support</p>
             </div>
           </div>
-          
+
           {/* Client logos */}
           <div className="flex justify-center space-x-6">
             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
